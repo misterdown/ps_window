@@ -22,6 +22,8 @@
     SOFTWARE.
 */
 // P.S. "ps" = PonoS
+#ifndef PS_WINDOW_HPP_
+#define PS_WINDOW_HPP_ 1
 
 #ifndef PS_WINDOW_FUNCTION 
 #   include <functional>
@@ -44,13 +46,9 @@
 #endif // PS_MOVE
 
 #ifdef __WIN32
-namespace ps_win32 {
 #   include <windows.h>
-};
 #else
-namespace ps_x11 {
 #   include <X11/Xlib.h> // for UNIX-like systems, max will suck
-};
 #endif // WIN32
 
 namespace ps_window {
@@ -226,8 +224,8 @@ namespace ps_window {
     };
     typedef int create_window_frags;
     struct windows_handles {
-        ps_win32::HWND hwnd{};
-        ps_win32::HINSTANCE hInstance{};
+        HWND hwnd{};
+        HINSTANCE hInstance{};
     };
 
 #else
@@ -241,9 +239,7 @@ namespace ps_window {
     class deafult_window {
         private:
 #ifdef __WIN32
-        static ps_win32::LRESULT WINAPI mysypurproc(ps_win32::HWND hWnd, ps_win32::UINT Msg, ps_win32::WPARAM wParam, ps_win32::LPARAM lParam) {
-            using namespace ps_win32;
-
+        static LRESULT WINAPI mysypurproc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
             switch (Msg) {
                 case WM_DESTROY: {
                     deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
@@ -347,11 +343,11 @@ namespace ps_window {
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMouseMoveCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMoveCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userResizeCallback;
+        void* usetPointer;
 
         private:
 #ifdef __WIN32
         void destroy_self_platform_spec() {
-            using namespace ps_win32;
 
             if (handles_.hwnd != 0) {
                 DestroyWindow(handles_.hwnd);
@@ -362,8 +358,6 @@ namespace ps_window {
             return handles_.hwnd != 0;
         }
         void wait_event_platform_spec() const {
-            using namespace ps_win32;
-
             MSG msg;
             if (GetMessageA(&msg, handles_.hwnd, 0, 0) != 0) {
                 DispatchMessageA(&msg);
@@ -371,8 +365,6 @@ namespace ps_window {
             }
         }
         void pool_events_platform_spec() const {
-            using namespace ps_win32;
-
             MSG msg;
             while (PeekMessageA(&msg, handles_.hwnd, 0, 0, PM_REMOVE)) {
                 DispatchMessageA(&msg);
@@ -384,8 +376,6 @@ namespace ps_window {
         }
 #else 
         void destroy_self_platform_spec() {
-            using namespace ps_x11;
-
             if (handles_.pDisplay != 0) {
                 XDestroyWindow(handles.pDisplay, handles_.xWindow);
                 handles_.pDisplay = 0;
@@ -399,7 +389,7 @@ namespace ps_window {
 
         public:
 #ifdef __WIN32
-        deafult_window(const char* name = "", create_window_frags flags = CREATE_WINDOW_FLAGS_BITS_RESIZABLE | CREATE_WINDOW_FLAGS_BITS_MENU, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT, int w = CW_USEDEFAULT, int h = CW_USEDEFAULT) :
+        deafult_window(PS_WINDOW_STRING_CHAR name = "", create_window_frags flags = CREATE_WINDOW_FLAGS_BITS_RESIZABLE | CREATE_WINDOW_FLAGS_BITS_MENU, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT, int w = CW_USEDEFAULT, int h = CW_USEDEFAULT) :
                 handles_{},
                 name_(name),
                 posX_(x), posY_(y), 
@@ -408,8 +398,9 @@ namespace ps_window {
                 userDestroyCallback(),
                 userKeyDownCallback(), userKeyUpCallback(),
                 userLbDownCallback(), userLbUpCallback(),
-                userRbDownCallback(), userRbUpCallback() {
-            using namespace ps_win32;
+                userRbDownCallback(), userRbUpCallback(),
+                usetPointer(nullptr) {
+            
 
             handles_.hInstance = GetModuleHandleA(0);
             PS_WINDOW_ASSERT(handles_.hInstance); // WHAT
@@ -428,7 +419,7 @@ namespace ps_window {
             };
             PS_WINDOW_ASSERT(RegisterClassA(&wc));
 
-            handles_.hwnd = CreateWindowA("ps_window_win32_window_class", name, flags, x, y, w, h, 0, 0, 0, 0);
+            handles_.hwnd = CreateWindowA("ps_window_win32_window_class", name.c_str(), flags, x, y, w, h, 0, 0, 0, 0);
             PS_WINDOW_ASSERT(handles_.hwnd);
 
             SetWindowLongPtrA(handles_.hwnd, GWLP_USERDATA, (LONG_PTR)(void*)this);
@@ -528,7 +519,7 @@ namespace ps_window {
 #ifdef VULKAN_H_
 #ifdef VULKAN_WIN32_H_
         VkSurface create_vulkan_surface(VkInstace instance, const VkAllocationCallbacks* allocationCallbacks) {
-            using namespace ps_win32;
+            
 
             PS_WINDOW_ASSERT(handles_.hwnd != 0);
             PS_WINDOW_ASSERT(handles_.hInstance != 0);
@@ -547,7 +538,7 @@ namespace ps_window {
         }
 #elif VULKAN_XLIB_H_
         [[nodiscard]] VkSurfaceKHR create_vulkan_surface(VkInstace instance, const VkAllocationCallbacks* allocationCallbacks) const {
-            using namespace ps_x11;
+            
 
             PS_WINDOW_ASSERT(handles_.dpy != 0);
             PS_WINDOW_ASSERT(handles_.window != 0);
@@ -568,3 +559,5 @@ namespace ps_window {
 #endif
     };
 };
+
+#endif// ifndef PS_WINDOW_HPP_
