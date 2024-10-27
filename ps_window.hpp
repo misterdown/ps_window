@@ -343,12 +343,11 @@ namespace ps_window {
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMouseMoveCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMoveCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userResizeCallback;
-        void* usetPointer;
+        void* userPointer;
 
         private:
 #ifdef __WIN32
         void destroy_self_platform_spec() {
-
             if (handles_.hwnd != 0) {
                 DestroyWindow(handles_.hwnd);
                 handles_.hwnd = 0;
@@ -373,6 +372,9 @@ namespace ps_window {
         }
         void set_window_name_platform_spec(const char* newName) const {
             SetWindowTextA(handles_.hwnd, newName);
+        }
+        void show_platform_spec() {
+            ShowWindow(handles_.hwnd, SW_SHOW);
         }
 #else 
         void destroy_self_platform_spec() {
@@ -399,8 +401,7 @@ namespace ps_window {
                 userKeyDownCallback(), userKeyUpCallback(),
                 userLbDownCallback(), userLbUpCallback(),
                 userRbDownCallback(), userRbUpCallback(),
-                usetPointer(nullptr) {
-            
+                userPointer(nullptr) {
 
             handles_.hInstance = GetModuleHandleA(0);
             PS_WINDOW_ASSERT(handles_.hInstance); // WHAT
@@ -423,8 +424,6 @@ namespace ps_window {
             PS_WINDOW_ASSERT(handles_.hwnd);
 
             SetWindowLongPtrA(handles_.hwnd, GWLP_USERDATA, (LONG_PTR)(void*)this);
-
-            ShowWindow(handles_.hwnd, SW_SHOW);
         }
 #else
         
@@ -486,7 +485,6 @@ namespace ps_window {
                 userResizeCallback(this, w, h);
         }
 
-
         public:
         [[nodiscard]] const windows_handles& get_handles() {
             return handles_;
@@ -515,12 +513,32 @@ namespace ps_window {
         [[nodiscard]] const PS_WINDOW_STRING_CHAR& get_window_name() const {
             return name_;
         }
+        [[nodiscard]] int get_mouse_x() const noexcept {
+            return mouseX_;
+        }
+        [[nodiscard]] int get_mouse_y() const noexcept {
+            return mouseY_;
+        }
+        [[nodiscard]] int get_window_extent_x() const noexcept {
+            return width_;
+        }
+        [[nodiscard]] int get_window_extent_y() const noexcept {
+            return height_;
+        }
+        [[nodiscard]] int get_window_position_x() const noexcept {
+            return posX_;
+        }
+        [[nodiscard]] int get_window_position_y() const noexcept {
+            return posY_;
+        }
+        void show() {
+            show_platform_spec();
+        }
 
 #ifdef VULKAN_H_
 #ifdef VULKAN_WIN32_H_
         VkSurface create_vulkan_surface(VkInstace instance, const VkAllocationCallbacks* allocationCallbacks) {
-            
-
+        
             PS_WINDOW_ASSERT(handles_.hwnd != 0);
             PS_WINDOW_ASSERT(handles_.hInstance != 0);
 
@@ -538,8 +556,6 @@ namespace ps_window {
         }
 #elif VULKAN_XLIB_H_
         [[nodiscard]] VkSurfaceKHR create_vulkan_surface(VkInstace instance, const VkAllocationCallbacks* allocationCallbacks) const {
-            
-
             PS_WINDOW_ASSERT(handles_.dpy != 0);
             PS_WINDOW_ASSERT(handles_.window != 0);
 
