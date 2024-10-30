@@ -54,6 +54,9 @@
 namespace ps_window {
 // Странная практика("include" в namespac`е), но должна работать буквально на любом компиляторе, да?
 #ifdef __WIN32
+    namespace details {
+        static size_t windowCount = 0;
+    };
     enum create_window_frag_bits {
         CREATE_WINDOW_FLAGS_BITS_RESIZABLE = WS_SIZEBOX | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
         CREATE_WINDOW_FLAGS_BITS_MENU = WS_SYSMENU,
@@ -237,8 +240,8 @@ namespace ps_window {
 
 #endif// ifdef __WIN32
     class deafult_window {
-        private:
 #ifdef __WIN32
+        private:
         static LRESULT WINAPI mysypurproc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
             switch (Msg) {
                 case WM_DESTROY: {
@@ -270,7 +273,7 @@ namespace ps_window {
                     if (me == nullptr)
                         break;
 
-                    me->key_lb_down_callback(LOWORD(lParam), HIWORD(lParam));
+                    me->lmb_down_callback(LOWORD(lParam), HIWORD(lParam));
                     break;
                 }
                 case WM_LBUTTONUP: {
@@ -278,7 +281,7 @@ namespace ps_window {
                     if (me == nullptr)
                         break;
 
-                    me->key_lb_up_callback(LOWORD(lParam), HIWORD(lParam));
+                    me->lmb_up_callback(LOWORD(lParam), HIWORD(lParam));
                     break;
                 }
                 case WM_RBUTTONDOWN: {
@@ -286,7 +289,7 @@ namespace ps_window {
                     if (me == nullptr)
                         break;
 
-                    me->key_rb_down_callback(LOWORD(lParam), HIWORD(lParam));
+                    me->rmb_down_callback(LOWORD(lParam), HIWORD(lParam));
                     break;
                 }
                 case WM_RBUTTONUP: {
@@ -294,7 +297,7 @@ namespace ps_window {
                     if (me == nullptr)
                         break;
 
-                    me->key_rb_up_callback(LOWORD(lParam), HIWORD(lParam));
+                    me->lmb_up_callback(LOWORD(lParam), HIWORD(lParam));
                     break;
                 }
                 case WM_MOUSEMOVE: {
@@ -302,7 +305,7 @@ namespace ps_window {
                     if (me == nullptr)
                         break;
 
-                    me->key_mouse_move_callback(LOWORD(lParam), HIWORD(lParam));
+                    me->mouse_move_callback(LOWORD(lParam), HIWORD(lParam));
                     break;
                 }
                 case WM_MOVE: {
@@ -336,8 +339,8 @@ namespace ps_window {
         PS_WINDOW_FUNCTION<void(deafult_window*)> userDestroyCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyDownCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyUpCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLbDownCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLbUpCallback;
+        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLmbDownCallback;
+        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLmbUpCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userRbDownCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userRbUpCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMouseMoveCallback;
@@ -399,12 +402,15 @@ namespace ps_window {
                 width_(w), height_(h),
                 userDestroyCallback(),
                 userKeyDownCallback(), userKeyUpCallback(),
-                userLbDownCallback(), userLbUpCallback(),
+                userLmbDownCallback(), userLmbUpCallback(),
                 userRbDownCallback(), userRbUpCallback(),
                 userPointer(nullptr) {
 
             handles_.hInstance = GetModuleHandleA(0);
             PS_WINDOW_ASSERT(handles_.hInstance); // WHAT
+            char classNameBuffer[128]{};
+            sprintf(classNameBuffer, "ps_window_win32_window_class%zu", details::windowCount);
+            ++details::windowCount;
 
             const WNDCLASSA wc{
                 .style = 0,
@@ -416,11 +422,12 @@ namespace ps_window {
                 .hCursor = LoadCursor(NULL, IDC_ARROW),
                 .hbrBackground = (HBRUSH)(COLOR_WINDOW + 1),
                 .lpszMenuName =  "ps_window_win32_menu",
-                .lpszClassName = "ps_window_win32_window_class"
+                .lpszClassName = classNameBuffer
             };
             PS_WINDOW_ASSERT(RegisterClassA(&wc));
+            
 
-            handles_.hwnd = CreateWindowA("ps_window_win32_window_class", name.c_str(), flags, x, y, w, h, 0, 0, 0, 0);
+            handles_.hwnd = CreateWindowA(classNameBuffer, name.c_str(), flags, x, y, w, h, 0, 0, 0, 0);
             PS_WINDOW_ASSERT(handles_.hwnd);
 
             SetWindowLongPtrA(handles_.hwnd, GWLP_USERDATA, (LONG_PTR)(void*)this);
@@ -442,31 +449,31 @@ namespace ps_window {
             if (userKeyUpCallback)
                 userKeyUpCallback(this, key);
         }
-        void key_lb_down_callback(int x, int y) {
+        void lmb_down_callback(int x, int y) {
             mouseX_ = x;
             mouseY_ = y;
-            if (userLbDownCallback)
-                userLbDownCallback(this, x, y);
+            if (userLmbDownCallback)
+                userLmbDownCallback(this, x, y);
         }
-        void key_lb_up_callback(int x, int y) {
+        void lmb_up_callback(int x, int y) {
             mouseX_ = x;
             mouseY_ = y;
-            if (userLbUpCallback)
-                userLbUpCallback(this, x, y);
+            if (userLmbUpCallback)
+                userLmbUpCallback(this, x, y);
         }
-        void key_rb_down_callback(int x, int y) {
+        void rmb_down_callback(int x, int y) {
             mouseX_ = x;
             mouseY_ = y;
             if (userRbDownCallback)
                 userRbDownCallback(this, x, y);
         }
-        void key_rb_up_callback(int x, int y) {
+        void rmb_up_callback(int x, int y) {
             mouseX_ = x;
             mouseY_ = y;
             if (userRbUpCallback)
                 userRbUpCallback(this, x, y);
         }
-        void key_mouse_move_callback(int x, int y) {
+        void mouse_move_callback(int x, int y) {
             mouseX_ = x;
             mouseY_ = y;
             if (userMouseMoveCallback)
