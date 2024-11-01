@@ -324,6 +324,13 @@ namespace ps_window {
                     me->key_resize_callback(LOWORD(lParam), HIWORD(lParam));
                     break;
                 }
+                case WM_MOUSEWHEEL: {
+                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    if (me == nullptr)
+                        break;
+                    me->mouse_wheel_callback(GET_WHEEL_DELTA_WPARAM(wParam) / 120);
+                    break;
+                }
             }
             return DefWindowProcA(hWnd, Msg, wParam, lParam);
         }
@@ -334,11 +341,13 @@ namespace ps_window {
         int posX_, posY_;
         int mouseX_, mouseY_;
         int width_, height_;
+        int mousewheelD_;
 
         public:
         PS_WINDOW_FUNCTION<void(deafult_window*)> userDestroyCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyDownCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyUpCallback;
+        PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyDownCallback;
+        PS_WINDOW_FUNCTION<void(deafult_window*, int)> userMouseWheelCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLmbDownCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLmbUpCallback;
         PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userRbDownCallback;
@@ -400,7 +409,9 @@ namespace ps_window {
                 posX_(x), posY_(y), 
                 mouseX_(0), mouseY_(0), 
                 width_(w), height_(h),
+                mousewheelD_(0),
                 userDestroyCallback(),
+                userMouseWheelCallback(),
                 userKeyDownCallback(), userKeyUpCallback(),
                 userLmbDownCallback(), userLmbUpCallback(),
                 userRbDownCallback(), userRbUpCallback(),
@@ -491,6 +502,14 @@ namespace ps_window {
             if (userResizeCallback)
                 userResizeCallback(this, w, h);
         }
+        void mouse_wheel_callback(int d) {
+            mousewheelD_ = d;
+            if (userMouseWheelCallback)
+                userMouseWheelCallback(this, d);
+        }
+        void pre_event_handle_update() {
+            mousewheelD_ = 0;
+        }
 
         public:
         [[nodiscard]] const windows_handles& get_handles() {
@@ -500,9 +519,11 @@ namespace ps_window {
             return is_open_platform_spec();
         }
         void wait_event() {
+            pre_event_handle_update();
             wait_event_platform_spec();
         }
         void pool_events() {
+            pre_event_handle_update();
             pool_events_platform_spec();
         }
         void set_window_name_str(const char* newName) {
@@ -537,6 +558,9 @@ namespace ps_window {
         }
         [[nodiscard]] int get_window_position_y() const noexcept {
             return posY_;
+        }
+        [[nodiscard]] int get_mouse_wheel_scroll_delta() const noexcept { // -1 - down 0 - calm 1 - up
+            return mousewheelD_;
         }
         void show() {
             show_platform_spec();
