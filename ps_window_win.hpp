@@ -377,7 +377,7 @@ namespace ps_window {
         void show_platform_spec() {
             ShowWindow(handles_.hwnd, SW_SHOW);
         }
-        void set_icon_platform_spec(int w, int h, const char* colorData, bool isrgba) {
+        void set_icon_platform_spec(int w, int h, const void* colorData, bool isrgba) {
             PS_WINDOW_ASSERT(colorData != nullptr);
             PS_WINDOW_ASSERT(w > 0);
             PS_WINDOW_ASSERT(h > 0);
@@ -406,9 +406,9 @@ namespace ps_window {
 
             if (isrgba) {
                 for (int rgbI = 0, rgbaI = 0; rgbaI < (w * h * 4); rgbaI += 4, rgbI += 3) {
-                    bits[rgbI] = colorData[rgbaI];
-                    bits[rgbI + 1] = colorData[rgbaI + 1];
-                    bits[rgbI + 2] = colorData[rgbaI + 2];
+                    bits[rgbI] = ((char*)colorData)[rgbaI];
+                    bits[rgbI + 1] = ((char*)colorData)[rgbaI + 1];
+                    bits[rgbI + 2] = ((char*)colorData)[rgbaI + 2];
                 }
             } else {
                 memcpy(bits, colorData, w * h * 3);
@@ -600,7 +600,7 @@ namespace ps_window {
         *       and size. For RGB format, the size should be w * h * 3 bytes.
         *       For RGBA format, the size should be w * h * 4 bytes.
         */
-        void set_icon(int w, int h, const char* colorData, bool isrgba = true) {
+        void set_icon(int w, int h, const void* colorData, bool isrgba = true) {
             set_icon_platform_spec(w, h, colorData, isrgba);
         }
         [[nodiscard]] const PS_WINDOW_STRING_CHAR& get_window_name() const {
