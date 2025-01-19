@@ -490,7 +490,7 @@ namespace ps_window {
         }
         default_window(const default_window&) = delete;
         default_window(default_window&& other) {
-            memcpy(this, &other, sizeof(default_window));
+            memcpy((void*)this, (void*)&other, sizeof(default_window));
             other.handles_.iconData = 0;
             other.handles_.hIcon = 0;
             other.handles_.hwnd = 0;
