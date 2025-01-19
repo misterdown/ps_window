@@ -45,6 +45,12 @@
 #   define PS_MOVE std::move
 #endif // PS_MOVE
 
+#if __cplusplus >= 201703L
+# define PS_NODISCARD [[nodiscard]]
+#else
+# define PS_NODISCARD
+#endif
+
 #include <windows.h>
 #ifdef _MSC_VER
 #   pragma comment(lib, "gdi32.lib")
@@ -59,6 +65,8 @@ namespace ps_window {
         CREATE_WINDOW_FLAGS_BITS_RESIZABLE = WS_SIZEBOX | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
         CREATE_WINDOW_FLAGS_BITS_MENU = WS_SYSMENU,
     };
+    typedef int create_window_frags;
+    
     enum key_codes {
         KEY_CODES_LBUTTON	            = 0x01,
         KEY_CODES_RBUTTON	            = 0x02,
@@ -223,7 +231,6 @@ namespace ps_window {
         KEY_CODES_OEM_7	                = 0xDE,
         KEY_CODES_OEM_8	                = 0xDF,
     };
-    typedef int create_window_frags;
     struct windows_handles {
         HWND hwnd{};
         HINSTANCE hInstance{};
@@ -231,12 +238,13 @@ namespace ps_window {
         void* iconDataPointer{nullptr};
         HBITMAP iconData{};
     };
-    class deafult_window {
+    struct default_window {
         private:
         static LRESULT WINAPI mysypurproc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
+            const LRESULT result = DefWindowProcA(hWnd, Msg, wParam, lParam);
             switch (Msg) {
                 case WM_DESTROY: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -244,23 +252,23 @@ namespace ps_window {
                     break;
                 }
                 case WM_KEYDOWN: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
-                    me->key_down_callback(wParam);
+                    me->key_down_callback((int)wParam);
                     break;
                 }
                 case WM_KEYUP: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
-                    me->key_up_callback(wParam);
+                    me->key_up_callback((int)wParam);
                     break;
                 }
                 case WM_LBUTTONDOWN: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -268,7 +276,7 @@ namespace ps_window {
                     break;
                 }
                 case WM_LBUTTONUP: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -276,7 +284,7 @@ namespace ps_window {
                     break;
                 }
                 case WM_RBUTTONDOWN: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -284,7 +292,7 @@ namespace ps_window {
                     break;
                 }
                 case WM_RBUTTONUP: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -292,7 +300,7 @@ namespace ps_window {
                     break;
                 }
                 case WM_MOUSEMOVE: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -300,7 +308,7 @@ namespace ps_window {
                     break;
                 }
                 case WM_MOVE: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
@@ -308,23 +316,23 @@ namespace ps_window {
                     break;
                 }
                 case WM_SIZE: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
 
-                    const LRESULT result = DefWindowProcA(hWnd, Msg, wParam, lParam);
                     me->key_resize_callback(LOWORD(lParam), HIWORD(lParam));
-                    return result;
+                    break;
                 }
                 case WM_MOUSEWHEEL: {
-                    deafult_window* me = (deafult_window*)(void*)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
+                    default_window* me = reinterpret_cast<default_window*>(GetWindowLongPtrA(hWnd, GWLP_USERDATA));
                     if (me == nullptr)
                         break;
+
                     me->mouse_wheel_callback(GET_WHEEL_DELTA_WPARAM(wParam) / 120);
                     break;
                 }
             }
-            return DefWindowProcA(hWnd, Msg, wParam, lParam);
+            return result;
         }
         private:
         windows_handles handles_;
@@ -335,17 +343,17 @@ namespace ps_window {
         int mousewheelD_;
 
         public:
-        PS_WINDOW_FUNCTION<void(deafult_window*)> userDestroyCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int)> userMouseWheelCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyDownCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int)> userKeyUpCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLmbDownCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userLmbUpCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userRbDownCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userRbUpCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMouseMoveCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userMoveCallback;
-        PS_WINDOW_FUNCTION<void(deafult_window*, int, int)> userResizeCallback;
+        PS_WINDOW_FUNCTION<void(default_window*)> userDestroyCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int)> userMouseWheelCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int)> userKeyDownCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int)> userKeyUpCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userLmbDownCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userLmbUpCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userRbDownCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userRbUpCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userMouseMoveCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userMoveCallback;
+        PS_WINDOW_FUNCTION<void(default_window*, int, int)> userResizeCallback;
         void* userPointer;
 
         private:
@@ -355,7 +363,7 @@ namespace ps_window {
                 handles_.hwnd = 0;
             }
         }
-        [[nodiscard]] bool is_open_platform_spec() const {
+        PS_NODISCARD bool is_open_platform_spec() const {
             return handles_.hwnd != 0;
         }
         void wait_event_platform_spec() const {
@@ -372,7 +380,7 @@ namespace ps_window {
                 TranslateMessage(&msg);
             }
         }
-        void set_window_name_platform_spec(const char* newName) const {
+        void set_name_platform_spec(const char* newName) const {
             SetWindowTextA(handles_.hwnd, newName);
         }
         void show_platform_spec() {
@@ -384,22 +392,19 @@ namespace ps_window {
             PS_WINDOW_ASSERT(h > 0);
 
             if (handles_.iconData == 0) {
-                const BITMAPINFO bmi {
-                    .bmiHeader = {
-                        .biSize = sizeof(BITMAPINFOHEADER),
-                        .biWidth = w,
-                        .biHeight = -h, // invert y axis
-                        .biPlanes = 1,
-                        .biBitCount = 24,
-                        .biCompression = BI_RGB,
-                        .biSizeImage = 0,
-                        .biXPelsPerMeter = 0,
-                        .biYPelsPerMeter = 0,
-                        .biClrUsed = 0,
-                        .biClrImportant = 0,
-                    },
-                    .bmiColors = {},
-                };
+                BITMAPINFO bmi{};
+                    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                    bmi.bmiHeader.biWidth = w;
+                    bmi.bmiHeader.biHeight = -h; // invert y axi;
+                    bmi.bmiHeader.biPlanes = 1;
+                    bmi.bmiHeader.biBitCount = 24;
+                    bmi.bmiHeader.biCompression = BI_RGB;
+                 // bmi.bmiHeader.biSizeImage = 0,
+                 // bmi.bmiHeader.biXPelsPerMeter = 0,
+                 // bmi.bmiHeader.biYPelsPerMeter = 0,
+                 // bmi.bmiHeader.biClrUsed = 0,
+                 // bmi.bmiHeader.biClrImportant = 0,
+                 // bmi.bmiColors = {};
                 handles_.iconData = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &handles_.iconDataPointer, NULL, 0);
                 PS_WINDOW_ASSERT(handles_.iconData != 0);
             }
@@ -419,13 +424,12 @@ namespace ps_window {
             HBITMAP hbmMask = CreateBitmap(w, h, 1, 1, NULL);
             PS_WINDOW_ASSERT(hbmMask != 0);
 
-            ICONINFO ii {
-                .fIcon = true,
-                .xHotspot = 0,
-                .yHotspot = 0,
-                .hbmMask = hbmMask,
-                .hbmColor = handles_.iconData,
-            };
+            ICONINFO ii{};
+            ii.fIcon = true;
+         // ii.xHotspot = 0;
+         // ii.yHotspot = 0;
+            ii.hbmMask = hbmMask;
+            ii.hbmColor = handles_.iconData;
 
             if (handles_.hIcon) {
                 DeleteObject((HGDIOBJ)handles_.hIcon);
@@ -442,7 +446,8 @@ namespace ps_window {
         }
 
         public:
-        deafult_window(PS_WINDOW_STRING_CHAR name = "", create_window_frags flags = CREATE_WINDOW_FLAGS_BITS_RESIZABLE | CREATE_WINDOW_FLAGS_BITS_MENU, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT, int w = CW_USEDEFAULT, int h = CW_USEDEFAULT) :
+        default_window() = default;
+        default_window(PS_WINDOW_STRING_CHAR name, create_window_frags flags = CREATE_WINDOW_FLAGS_BITS_RESIZABLE | CREATE_WINDOW_FLAGS_BITS_MENU, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT, int w = CW_USEDEFAULT, int h = CW_USEDEFAULT) :
                 handles_{},
                 name_(name),
                 posX_(x), posY_(y), 
@@ -460,21 +465,21 @@ namespace ps_window {
             PS_WINDOW_ASSERT(handles_.hInstance); // WHAT
 
             char classNameBuffer[128]{}; // 30 + std::numeric_limits<size_t>::digits10 < 128. Everything OK.
-            sprintf(classNameBuffer, "ps_window_win32_window_class%zu", details::windowCount);
+            sprintf_s(classNameBuffer, "ps_window_win32_window_class%zu", details::windowCount);
             ++details::windowCount;
 
-            const WNDCLASSA wc{
-                .style = 0,
-                .lpfnWndProc = (WNDPROC)mysypurproc,
-                .cbClsExtra = 0,
-                .cbWndExtra = 0,
-                .hInstance = handles_.hInstance,
-                .hIcon = LoadIcon(NULL, IDI_APPLICATION),
-                .hCursor = LoadCursor(NULL, IDC_ARROW),
-                .hbrBackground = (HBRUSH)(COLOR_WINDOW + 1),
-                .lpszMenuName =  "ps_window_win32_menu",
-                .lpszClassName = classNameBuffer
-            };
+            WNDCLASSA wc{};
+         // wc.style = 0;
+            wc.lpfnWndProc = (WNDPROC)mysypurproc;
+         // wc.cbClsExtra = 0;
+         // wc.cbWndExtra = 0;
+            wc.hInstance = handles_.hInstance;
+            wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+            wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+            wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+            wc.lpszMenuName =  "ps_window_win32_menu";
+            wc.lpszClassName = classNameBuffer;
+
             PS_WINDOW_ASSERT(RegisterClassA(&wc));
             
             handles_.hwnd = CreateWindowA(classNameBuffer, name.c_str(), flags, x, y, w, h, 0, 0, 0, 0);
@@ -483,7 +488,15 @@ namespace ps_window {
             SetWindowLongPtrA(handles_.hwnd, GWLP_USERDATA, (LONG_PTR)(void*)this);
 
         }
-        ~deafult_window() {
+        default_window(const default_window&) = delete;
+        default_window(default_window&& other) {
+            memcpy(this, &other, sizeof(default_window));
+            other.handles_.iconData = 0;
+            other.handles_.hIcon = 0;
+            other.handles_.hwnd = 0;
+            SetWindowLongPtrA(handles_.hwnd, GWLP_USERDATA, (LONG_PTR)(void*)this); // VERY IMPORTANT
+        }
+        ~default_window() {
             if (handles_.iconData != 0) {
                 DeleteObject(handles_.iconData);
                 handles_.iconData = 0;
@@ -493,6 +506,16 @@ namespace ps_window {
                 DeleteObject(handles_.hIcon);
                 handles_.hIcon = 0;
             }
+            if (handles_.hwnd != 0) {
+                SendMessageA(handles_.hwnd, WM_CLOSE, 0, 0);
+                handles_.hwnd = 0;
+            }
+        }
+        default_window& operator=(const default_window&) = delete;
+        default_window& operator=(default_window&& other)  {
+            this->~default_window();
+            new(this)default_window(PS_MOVE(other));
+            return *this;
         }
 
         private:
@@ -561,10 +584,10 @@ namespace ps_window {
         }
 
         public:
-        [[nodiscard]] const windows_handles& get_handles() {
+        PS_NODISCARD const windows_handles& get_handles() {
             return handles_;
         }
-        [[nodiscard]] bool is_open() const {
+        PS_NODISCARD bool is_open() const {
             return is_open_platform_spec();
         }
         void wait_event() {
@@ -575,18 +598,18 @@ namespace ps_window {
             pre_event_handle_update();
             pool_events_platform_spec();
         }
-        void set_window_name_str(const char* newName) {
+        void set_name_str(const char* newName) {
             PS_WINDOW_ASSERT(newName != nullptr);
             name_ = newName;
-            set_window_name_platform_spec(newName);
+            set_name_platform_spec(newName);
         }
-        void set_window_name(const PS_WINDOW_STRING_CHAR& newName) {
+        void set_name(const PS_WINDOW_STRING_CHAR& newName) {
             name_ = newName;
-            set_window_name_platform_spec(name_.c_str());
+            set_name_platform_spec(name_.c_str());
         }
-        void set_window_name(PS_WINDOW_STRING_CHAR&& newName) {
+        void set_name(PS_WINDOW_STRING_CHAR&& newName) {
             name_ = PS_MOVE(newName);
-            set_window_name_platform_spec(name_.c_str());
+            set_name_platform_spec(name_.c_str());
         }
         /**
         * @brief Sets the window icon using raw RGB or RGBA color data.
@@ -604,28 +627,28 @@ namespace ps_window {
         void set_icon(int w, int h, const void* colorData, bool isrgba = true) {
             set_icon_platform_spec(w, h, colorData, isrgba);
         }
-        [[nodiscard]] const PS_WINDOW_STRING_CHAR& get_window_name() const {
+        PS_NODISCARD const PS_WINDOW_STRING_CHAR& get_name() const {
             return name_;
         }
-        [[nodiscard]] int get_mouse_x() const noexcept {
+        PS_NODISCARD int get_mouse_x() const noexcept {
             return mouseX_;
         }
-        [[nodiscard]] int get_mouse_y() const noexcept {
+        PS_NODISCARD int get_mouse_y() const noexcept {
             return mouseY_;
         }
-        [[nodiscard]] int get_window_extent_x() const noexcept {
+        PS_NODISCARD int get_width() const noexcept {
             return width_;
         }
-        [[nodiscard]] int get_window_extent_y() const noexcept {
+        PS_NODISCARD int get_heigth() const noexcept {
             return height_;
         }
-        [[nodiscard]] int get_window_position_x() const noexcept {
+        PS_NODISCARD int get_x() const noexcept {
             return posX_;
         }
-        [[nodiscard]] int get_window_position_y() const noexcept {
+        PS_NODISCARD int get_y() const noexcept {
             return posY_;
         }
-        [[nodiscard]] int get_mouse_wheel_scroll_delta() const noexcept { // -1 - down 0 - calm 1 - up
+        PS_NODISCARD int get_mouse_wheel_scroll_delta() const noexcept { // -1 - down 0 - calm 1 - up
             return mousewheelD_;
         }
         void show() {
@@ -633,5 +656,5 @@ namespace ps_window {
         }
     };
 };
-
+#undef PS_NODISCARD
 #endif// ifndef PS_WINDOW_WIN_HPP_
